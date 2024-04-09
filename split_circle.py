@@ -5,9 +5,9 @@ import numpy as np
 import os 
 from PIL import Image
 
-Wimg = cv2.imread("D:\\opencv-python\\sobel_tiff\\0513160972_BL1_01.tiff")
-Bimg = cv2.imread("D:\\opencv-python\\sobel_tiff\\0513161161_FAM1_02.tiff",cv2.IMREAD_UNCHANGED)
-Gimg = cv2.imread("D:\\opencv-python\\sobel_tiff\\0513161433_HEX1_03.tiff",cv2.IMREAD_UNCHANGED)
+Wimg = cv2.imread("sobel_tiff\\0513163679_BL1_04.tiff")
+Bimg = cv2.imread("sobel_tiff\\0513163872_FAM1_05.tiff", cv2.IMREAD_GRAYSCALE)
+Gimg = cv2.imread("sobel_tiff\\0513164145_HEX1_06.tiff", cv2.IMREAD_GRAYSCALE)
 # plt.imshow(Wimg)
 # plt.imshow(Bimg)
 # plt.imshow(Gimg)
@@ -42,9 +42,9 @@ def sobel_edge_detection(img):
     absx = cv2.convertScaleAbs(sobel_xedge)
     absy = cv2.convertScaleAbs(sobel_yedge)
     sobel_edge_image = cv2.addWeighted(absx,0.5,absy,0.5,0)
-    # sobel_edge_image_T = cv2.threshold(sobel_edge_image, 3, 250, cv2.THRESH_BINARY)
-    # plt.imshow(sobel_edge_image)
-    # plt.show()
+     
+    plt.imshow(sobel_edge_image)
+    plt.show()
     cv2.imwrite("sobel_edge_image.tiff",sobel_edge_image)
     print(f"sobel_edge_img:{sobel_edge_image.dtype}+{sobel_edge_image.shape}")
     # cv2.imshow("sobel_edge_image_T",sobel_edge_image_T)
@@ -69,39 +69,72 @@ def connected_component_process(img):
     # 创建一个掩码来显示极大连通区域
     mask = np.zeros_like(img)
     mask[labels == max_label] = 255
+
+    #对掩码进行开运算
+    kernel = np.array([[-1, -1, -1],
+                   [-1,  8, -1],
+                   [-1, -1, -1]])
+    opening_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     # 显示掩码
-    # cv2.imshow("Mask", mask)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow("openging_Mask", opening_mask)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     cv2.imwrite("mask.tiff",mask)
-    
+    cv2.imwrite("opening_mask.tiff",opening_mask)
     print(f"mask:{mask.dtype}_{mask.shape}")
 
 def draw_mask_circle2BG (img):
-    mask = cv2.imread("mask.tiff")
+    opening_mask = cv2.imread("opening_mask.tiff")
     # mask = mask.astype(np.uint16)
-    mask_G = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-    cv2.imwrite("mask_G.tiff",mask_G)
-    print (f"mask_G数据种类{mask_G.dtype}_{mask_G.shape}")
+    opening_mask_G = cv2.cvtColor(opening_mask, cv2.COLOR_BGR2GRAY)
+    cv2.imwrite("opening_mask_G.tiff",opening_mask_G)
+    print (f"mask_G数据种类{opening_mask_G.dtype}_{opening_mask_G.shape}")
     #对mask_G做圆形检测
-    circles = cv2.HoughCircles(mask_G, cv2.HOUGH_GRADIENT, 1, 18, param1=50, param2=1, minRadius=3, maxRadius=15)
-    # print("检测到的圆的个数：", circles.shape[0]) 
+    circles = cv2.HoughCircles(opening_mask_G, cv2.HOUGH_GRADIENT, 1, 15, param1=50, param2=1, minRadius=3, maxRadius=10)
+    print("检测到的圆的个数：", circles.shape[1]) 
     # #对mask创建掩膜
     # mask_circle = np.zeros_like(img)
     mask_circle = np.zeros((752, 1028))
+    
+    #对输入图像做开运算
+    kernel = np.array([[-1, -1, -1],
+                   [-1,  8, -1],
+                   [-1, -1, -1]])
+    img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
 
-    Bimg = cv2.imread("D:\\opencv-python\\sobel_tiff\\0513161161_FAM1_02.tiff")
+    # enhance_contrast(img, 1.5, 0)
+    adjusted_img = cv2.addWeighted(img, 100, np.zeros(img.shape, img.dtype), 50, 0) #这个函数是可用的
+    #增强图像亮度
+    # 定义亮度增强参数
+    # brightness_factor = 254
+    # adjusted_img = np.where((255 - img) < brightness_factor, 255, img * 100) #这个函数是可用的
 
-    #绘制实心圆
+    cv2.imshow("img",adjusted_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    #在Bimg或Gimg上绘制圆
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
-            cv2.circle(mask_circle, (i[0], i[1]), i[2], (255, 255, 255), 1)
+            cv2.circle(adjusted_img, (i[0], i[1]), i[2], (255, 255, 255), 1)
        
-    cv2.imshow("mask_circle",mask_circle)
+    cv2.imshow("mask_circle",adjusted_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+def enhance_contrast(img, alpha, beta):
+    # 将图像转换为float32类型
+    img = img.astype('float32') / 255.0
+    # 提高对比度
+    img = alpha * img + beta
+    # 限制像素值范围
+    img = np.clip(img, 0, 1)
+    # 转换回uint8类型
+    img = (img * 255).astype('uint8')
+    return img
+
 
 
 
@@ -110,5 +143,4 @@ def draw_mask_circle2BG (img):
 sobel_edge_detection(Wimg)
 connected_component_process("sobel_edge_image.tiff")
 draw_mask_circle2BG (Bimg)
-
-
+draw_mask_circle2BG (Gimg)
