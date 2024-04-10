@@ -24,11 +24,6 @@ print(f"Wimg转换后的格式:{Wimg.dtype}+{Wimg.shape}")
 print(f"Bimg转换后的格式:{Bimg.dtype}+{Bimg.shape}")
 print(f"Gimg转换后的格式:{Gimg.dtype}+{Gimg.shape}")
 
-# cv2.imshow("Bimg",Bimg)
-# cv2.imshow("Gimg",Gimg)
-# cv2.imshow("Wimg",Wimg)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
 
 #对Wimg做sobel算子边缘检测
 split_circle.sobel_edge_detection(Wimg)
@@ -36,19 +31,18 @@ split_circle.connected_component_process("sobel_edge_image.tiff")
 
 def thread_Func(img,color_of_light):
     split_circle.draw_mask_circle2BG (img)
-    
     split_circle.draw_pixel_at_circle_center(img,color_of_light)
-
+    split_circle.generate_json_file(color_of_light)
 
 
 Thread1 = Thread(target=thread_Func, args=(Bimg,'blue'))
-Thread2 = Thread(target=thread_Func, args=(Gimg,'green'))
+# Thread2 = Thread(target=thread_Func, args=(Gimg,'green'))
 
 Thread1.start()    
-Thread2.start()
+# Thread2.start()
 
 Thread1.join()    
-Thread2.join()
+# Thread2.join()
 
 
 
