@@ -5,57 +5,53 @@ import numpy as np
 import os 
 from PIL import Image
 
-Wimg = cv2.imread("sobel_tiff\\0513163679_BL1_04.tiff")
-Bimg = cv2.imread("sobel_tiff\\0513163872_FAM1_05.tiff", cv2.IMREAD_GRAYSCALE)
-Gimg = cv2.imread("sobel_tiff\\0513164145_HEX1_06.tiff", cv2.IMREAD_GRAYSCALE)
-# plt.imshow(Wimg)
-# plt.imshow(Bimg)
-# plt.imshow(Gimg)
-# plt.show()
+#定义一个全局列表，用于保存circle的坐标
+global_circle_list = []
 
-print(f"Wimg读进来的格式:{Wimg.dtype}+{Wimg.shape}")
-print(f"Bimg读进来的格式:{Bimg.dtype}+{Bimg.shape}")
-print(f"Gimg读进来的格式:{Gimg.dtype}+{Gimg.shape}")
+#图像增亮
+def enhance_contrast(img, alpha, beta):
+    # 提高对比度
+    img = alpha * img + beta
+    # 限制像素值范围
+    img = np.clip(img, 0, 65535)
+    # 转换回uint8类型
+    img = (img /65535 * 255).astype('uint8')
+    #限制像素值范围
+    img = np.clip(img, 0, 255)
+    return img
+
 
 def opening(img):
     original_image = img.copy()
-    # re_image = cv2.resize(image,(400,300))
-    # gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kernel = np.ones((3, 3), dtype=np.uint8)#kernel也可以选择椭圆或者矩阵或者十字
-    opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, 3)#去毛刺
-    opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, 3)#去毛刺
-    opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, 3)#去毛刺
-    # ss = np.hstack((gray_img, opening))
-    # plt.imshow(opening)
-    # plt.show()
+    kernel_opening = np.array([[-1, -1, -1],
+                               [-1,  8, -1],
+                               [-1, -1, -1]])
+    opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel_opening, 3)#去毛刺
     cv2.imwrite("opening.tiff",opening)
-#     cv2.imshow("opening_ss",opening)
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
+
 
 def sobel_edge_detection(img):
 
     original_image = img.copy()
-    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    sobel_xedge = cv2.Sobel(gray_img,cv2.CV_16S,0,1,3)
-    sobel_yedge = cv2.Sobel(gray_img,cv2.CV_16S,1,0,3)
+    # gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    sobel_xedge = cv2.Sobel(img,cv2.CV_16S,0,1,3)
+    sobel_yedge = cv2.Sobel(img,cv2.CV_16S,1,0,3)
     absx = cv2.convertScaleAbs(sobel_xedge)
     absy = cv2.convertScaleAbs(sobel_yedge)
     sobel_edge_image = cv2.addWeighted(absx,0.5,absy,0.5,0)
      
-    plt.imshow(sobel_edge_image)
-    plt.show()
+    # plt.imshow(sobel_edge_image)
+    # plt.show()
     cv2.imwrite("sobel_edge_image.tiff",sobel_edge_image)
     print(f"sobel_edge_img:{sobel_edge_image.dtype}+{sobel_edge_image.shape}")
-    # cv2.imshow("sobel_edge_image_T",sobel_edge_image_T)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+   
 
 #极大连通域处理
 def connected_component_process(img):
     img = cv2.imread(img)
     gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img_T = cv2.threshold(gray_image, 7, 255, cv2.THRESH_BINARY)[1]
+    img_T = cv2.threshold(gray_image, 90, 255, cv2.THRESH_BINARY)[1]
 
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(img_T, connectivity=8, ltype=cv2.CV_32S)
 
@@ -93,9 +89,11 @@ def draw_mask_circle2BG (img):
     #对mask_G做圆形检测
     circles = cv2.HoughCircles(opening_mask_G, cv2.HOUGH_GRADIENT, 1, 15, param1=50, param2=1, minRadius=3, maxRadius=10)
     print("检测到的圆的个数：", circles.shape[1]) 
+
+    
     # #对mask创建掩膜
     # mask_circle = np.zeros_like(img)
-    mask_circle = np.zeros((752, 1028))
+    # mask_circle = np.zeros((752, 1028))
     
     #对输入图像做开运算
     kernel = np.array([[-1, -1, -1],
@@ -104,43 +102,70 @@ def draw_mask_circle2BG (img):
     img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
 
     # enhance_contrast(img, 1.5, 0)
-    adjusted_img = cv2.addWeighted(img, 100, np.zeros(img.shape, img.dtype), 50, 0) #这个函数是可用的
+    # adjusted_img = cv2.addWeighted(img, 100, np.zeros(img.shape, img.dtype), 50, 0) #这个函数是可用的
     #增强图像亮度
     # 定义亮度增强参数
     # brightness_factor = 254
     # adjusted_img = np.where((255 - img) < brightness_factor, 255, img * 100) #这个函数是可用的
 
-    cv2.imshow("img",adjusted_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow("img",img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     #在Bimg或Gimg上绘制圆
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
-            cv2.circle(adjusted_img, (i[0], i[1]), i[2], (255, 255, 255), 1)
-       
-    cv2.imshow("mask_circle",adjusted_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+            # cv2.circle(img, (i[0], i[1]), i[2], (255, 255, 255), 1)
+            #将圆心坐标保存到全局列表
+            global_circle_list.append((i[0], i[1],i[2]))
+            # print(f"圆心坐标：{i[0]},{i[1]}")
 
-def enhance_contrast(img, alpha, beta):
-    # 将图像转换为float32类型
-    img = img.astype('float32') / 255.0
-    # 提高对比度
-    img = alpha * img + beta
-    # 限制像素值范围
-    img = np.clip(img, 0, 1)
-    # 转换回uint8类型
-    img = (img * 255).astype('uint8')
+       
+    # cv2.imshow("mask_circle",img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+#将uint8图像转换为uint16图像
+def uint8_to_uint16(img):
+    # img = img.astype(np.uint16)
+    img = img /255 * 65535
     return img
 
+#根据圆心位置的列表坐标得出圆心处的像素值
+def get_pixel_value(img, global_circle_list):
+    pixel_value_list = []
+    for i in global_circle_list:
+        pixel_value_list.append(img[i[1], i[0]])
+    return pixel_value_list
+
+
+
+def draw_pixel_at_circle_center(img,color_of_light):
+    height, width = img.shape
+    # 遍历圆心位置的列表
+    for center in global_circle_list:
+        if 0 <= center[0] < width and 0 <= center[1] < height:
+            # 获取圆心处的像素值
+            px_value = img[center[1], center[0]]
+
+        # 在圆心处绘制像素值
+        # cv2.putText(img, str(px_value/255*65535), (center[0], center[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.1, (255, 0, 0), 1, cv2.LINE_AA)
+        img = cv2.putText(img, str(px_value*10), (center[0], center[1]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.4, (255, 0, 0), 1, cv2.LINE_AA)
+
+        # 在像素值上方绘制圆心坐标
+        # cv2.putText(img, str(f"{center[1]}_{center[0]}"), (center[0], center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.2, (0, 255, 0), 1, cv2.LINE_AA)
+        # 在圆心处绘制圆
+        cv2.circle(img, (center[0], center[1]), center[2], (0, 0, 255), 1)
+    # 显示绘制了像素值的图像
+    # cv2.imshow('Image with pixel values at circle centers', img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    cv2.imwrite(f"img_with_pixel_values_at_circle_centers_{color_of_light}.tiff",img)
 
 
 
 
-#sobel边缘检测，输出为sobel_edge_image
-sobel_edge_detection(Wimg)
-connected_component_process("sobel_edge_image.tiff")
-draw_mask_circle2BG (Bimg)
-draw_mask_circle2BG (Gimg)
+
+
+

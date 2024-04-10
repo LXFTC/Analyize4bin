@@ -5,7 +5,7 @@ import numpy as np
 import os 
 from PIL import Image
 import split_circle
-
+from threading import Thread, Lock
  
 Wimg = cv2.imread('sobel_tiff\\0513173604_BL1_10.tiff', cv2.IMREAD_ANYDEPTH)
 Bimg = cv2.imread('sobel_tiff\\0513173810_FAM1_11.tiff', cv2.IMREAD_ANYDEPTH)
@@ -33,7 +33,28 @@ print(f"Gimg转换后的格式:{Gimg.dtype}+{Gimg.shape}")
 #对Wimg做sobel算子边缘检测
 split_circle.sobel_edge_detection(Wimg)
 split_circle.connected_component_process("sobel_edge_image.tiff")
-split_circle.draw_mask_circle2BG (Bimg)
-split_circle.draw_mask_circle2BG (Gimg)
-# 调用函数
-split_circle.draw_pixel_at_circle_center(Bimg)
+
+def thread_Func(img,color_of_light):
+    split_circle.draw_mask_circle2BG (img)
+    
+    split_circle.draw_pixel_at_circle_center(img,color_of_light)
+
+
+
+Thread1 = Thread(target=thread_Func, args=(Bimg,'blue'))
+Thread2 = Thread(target=thread_Func, args=(Gimg,'green'))
+
+Thread1.start()    
+Thread2.start()
+
+Thread1.join()    
+Thread2.join()
+
+
+
+
+
+
+
+
+
