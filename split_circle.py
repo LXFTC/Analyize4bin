@@ -135,10 +135,10 @@ def draw_pixel_at_circle_center(img,color_of_light):
             global_green_list.append((center[0], center[1], center[2], int (px_value*10-200)))
         # 在圆心处绘制像素值
         # cv2.putText(img, str(px_value/255*65535), (center[0], center[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.1, (255, 0, 0), 1, cv2.LINE_AA)
-        bgr_image = cv2.putText(bgr_image, str(px_value*10-200), (center[0], center[1]-3), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.3, (255, 255, 255), 1, cv2.LINE_AA)
+        bgr_image = cv2.putText(bgr_image, str(px_value*10-200), (center[0]-5, center[1]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.3, (255, 0, 0), 1)
 
         # 在像素值上方绘制圆心坐标
-        bgr_image = cv2.putText(bgr_image, str(f"{center[1]}_{center[0]}"), (center[0]-3, center[1]+3), cv2.FONT_HERSHEY_SIMPLEX, 0.2, (0, 255, 0), 1, cv2.LINE_AA)
+        # bgr_image = cv2.putText(bgr_image, str(f"{center[1]}_{center[0]}"), (center[0]-5, center[1]+3), cv2.FONT_HERSHEY_SIMPLEX, 0.2, (0, 255, 0), 1)
         # 在圆心处绘制圆
         cv2.circle(bgr_image, (center[0], center[1]), center[2], (0, 0, 255), 1)
     
@@ -146,17 +146,14 @@ def draw_pixel_at_circle_center(img,color_of_light):
 
 #根据global_blue_list和global_green_list生成json文件
 def generate_json_file(color_of_light):
+    json_file_name = "通道1.json"
+    json_data = {}
+    json_data["circles"] = []
     if color_of_light == "blue":
         data_list = global_blue_list
-        json_file_name = "blue_data.json"
-        json_data = {}
-        json_data["circles"] = []
-        
         for data in data_list:
-            
             # 定义json文件中每个数据项的内容
-            data_content = {"id":f"{data[0]}_{data[1]}", "x": data[0], "y": data[1], "radius": data[2], "brightness": data[3],"islive":"true"}
-            
+            data_content = {"id":f"{data[0]}_{data[1]}", "x": data[0], "y": data[1], "radius": data[2], "FAM": data[3],"islive":"true"}
             # 将uint16类型的数据转换为int类型
             if isinstance(data[0], np.uint16):
                 data_content["x"] = int(data[0])
@@ -171,6 +168,28 @@ def generate_json_file(color_of_light):
             json_data["circles"].append(data_content)  # 这里应该使用json_data["circles"]而不是circles
                 
         json_data["lightid"] = "1"
+
+    if color_of_light == "green":
+        data_list = global_green_list
+        for data in data_list:
+            # 定义json文件中每个数据项的内容
+            data_content = {"id":f"{data[0]}_{data[1]}", "x": data[0], "y": data[1], "radius": data[2], "HEX": data[3],"islive":"true"}
+            # 将uint16类型的数据转换为int类型
+            if isinstance(data[0], np.uint16):
+                data_content["x"] = int(data[0])
+            if isinstance(data[1], np.uint16):
+                data_content["y"] = int(data[1])
+            if isinstance(data[2], np.uint16):
+                data_content["radius"] = int(data[2])
+            if isinstance(data[3], np.uint16):
+                data_content["brightness"] = int(data[3])
+            
+            # 将数据项内容添加到json文件中
+            json_data["circles"].append(data_content)  # 这里应该使用json_data["circles"]而不是circles
+                
+        json_data["lightid"] = "1"
+
+
         # 保存json文件
         try:
             with open(json_file_name, "w") as f:
