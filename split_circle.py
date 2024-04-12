@@ -102,7 +102,7 @@ def draw_mask_circle2BG ():
 
 
 #在输入图像上绘制亮度文本以及圆形
-def draw_pixel_at_circle_center(img,color_light):
+def draw_pixel_at_circle_center(img,color_light, picnum):
     height, width = img.shape
     bgr_image = img.copy()
     bgr_image = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
@@ -126,7 +126,7 @@ def draw_pixel_at_circle_center(img,color_light):
         # 在圆心处绘制圆
         cv2.circle(bgr_image, (center[0], center[1]), center[2], (0, 0, 255), 1)
     
-    cv2.imwrite(f"img_with_pixel_values_at_circle_centers_{color_light}.tiff",bgr_image)
+    cv2.imwrite(f"{picnum}_{color_light}_{len(global_circle_list)}.tiff",bgr_image)
     # print (f"global_blue_list:{global_blue_list}")
     # print(f"global_green_list:{global_green_list}")
 
@@ -195,7 +195,7 @@ def generate_json_file(color_of_light):
             print("没有足够的权限来创建或写入文件")  
 
 #合并blue.json和green.json文件
-def merge_json():
+def merge_json(picnum):
     # 加载green.json文件
     with open('green.json', 'r', encoding='utf-8') as file:
         green_data = json.load(file)
@@ -224,9 +224,13 @@ def merge_json():
     }
 
     # 将合并后的数据写入新的JSON文件
-    with open('通道1.json', 'w', encoding='utf-8') as file:
+    with open(f'通道{picnum}.json', 'w', encoding='utf-8') as file:
         json.dump(merged_data, file, indent=4, ensure_ascii=False)
 
+    #释放全局列表对于内存的占用
+    global_circle_list.clear()
+    global_blue_list.clear()
+    global_green_list.clear()
 
      
 
