@@ -28,42 +28,32 @@ print(f"Gimg转换后的格式:{Gimg.dtype}+{Gimg.shape}")
 #对Wimg做sobel算子边缘检测
 split_circle.sobel_edge_detection(Wimg)
 split_circle.connected_component_process("sobel_edge_image.tiff")
-# lock = threading.Lock()
+split_circle.draw_mask_circle2BG ()
 
-# def thread_Func(img,color_of_light):
-#     lock.acquire()
-#     split_circle.draw_mask_circle2BG (img)
-#     split_circle.draw_pixel_at_circle_center(img,color_of_light)
-#     split_circle.generate_json_file(color_of_light)
-#     lock.release()
+def thread_Func(img,color_of_light):
+    split_circle.draw_pixel_at_circle_center(img,color_of_light)
+    split_circle.generate_json_file(color_of_light)
     
 
 
-# Thread1 = threading.Thread(target=thread_Func, args=(Bimg,'blue'))
-# Thread1.start()
-# Thread1.join() 
+Thread1 = threading.Thread(target=thread_Func, args=(Bimg,'blue'))
+Thread1.start()
+Thread1.join() 
 
-# Thread2 = threading.Thread(target=thread_Func, args=(Gimg,'green'))
-# Thread2.start()
-# Thread2.join()    
+Thread2 = threading.Thread(target=thread_Func, args=(Gimg,'green'))
+Thread2.start()
+Thread2.join()    
 
-split_circle.draw_mask_circle2BG (Gimg)
-split_circle.draw_pixel_at_circle_center(Gimg,'green')   
-split_circle.generate_json_file('green')
+split_circle.merge_json()
+# split_circle.draw_pixel_at_circle_center(Gimg,'green')   
+# split_circle.generate_json_file('green')
 
 
-split_circle.draw_pixel_at_circle_center(Bimg,'blue')   
-split_circle.generate_json_file('blue')
+# split_circle.draw_pixel_at_circle_center(Bimg,'blue')   
+# split_circle.generate_json_file('blue')
 
 # split_circle.merge_json('通道1.json')
 
-
-
-
-# split_circle.generate_json_file('blue')
-# split_circle.generate_json_file('green')
-
-# split_circle.merge_json('blue.json','green.json')
 
 
 

@@ -76,10 +76,6 @@ def connected_component_process(img):
                    [-1,  8, -1],
                    [-1, -1, -1]])
     opening_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    # # 显示掩码
-    # cv2.imshow("openging_Mask", opening_mask)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
 
     cv2.imwrite("mask.tiff",mask)
     cv2.imwrite("opening_mask.tiff",opening_mask)
@@ -87,9 +83,9 @@ def connected_component_process(img):
 
 
 #根据sobel算子得到的mask做圆形检测，并将检测到的圆心以及半径存储到全局列表
-def draw_mask_circle2BG (img):
+def draw_mask_circle2BG ():
     opening_mask = cv2.imread("opening_mask.tiff")
-    # mask = mask.astype(np.uint16)
+    
     opening_mask_G = cv2.cvtColor(opening_mask, cv2.COLOR_BGR2GRAY)
     cv2.imwrite("opening_mask_G.tiff",opening_mask_G)
     print (f"mask_G数据种类{opening_mask_G.dtype}_{opening_mask_G.shape}")
@@ -97,18 +93,10 @@ def draw_mask_circle2BG (img):
     circles = cv2.HoughCircles(opening_mask_G, cv2.HOUGH_GRADIENT, 1, 15, param1=50, param2=1, minRadius=3, maxRadius=10)
     print("检测到的圆的个数：", circles.shape[1]) 
 
-    #对输入图像做开运算
-    kernel = np.array([[-1, -1, -1],
-                   [-1,  8, -1],
-                   [-1, -1, -1]])
-    img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
-
-    #在Bimg或Gimg上绘制圆
+    #将圆心以及圆的半径等信息存在全局变量中
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
-            # cv2.circle(img, (i[0], i[1]), i[2], (255, 255, 255), 1)
-            #将圆心坐标保存到全局列表
             global_circle_list.append((i[0], i[1],i[2]))
             # print(f"圆心坐标：{i[0]},{i[1]}")
 
@@ -139,10 +127,10 @@ def draw_pixel_at_circle_center(img,color_light):
         cv2.circle(bgr_image, (center[0], center[1]), center[2], (0, 0, 255), 1)
     
     cv2.imwrite(f"img_with_pixel_values_at_circle_centers_{color_light}.tiff",bgr_image)
-    print (f"global_blue_list:{global_blue_list}")
-    print(f"global_green_list:{global_green_list}")
+    # print (f"global_blue_list:{global_blue_list}")
+    # print(f"global_green_list:{global_green_list}")
 
-    
+
 #根据global_blue_list和global_green_list生成json文件
 def generate_json_file(color_of_light):
     if color_of_light == "blue":
@@ -205,6 +193,39 @@ def generate_json_file(color_of_light):
                 print(f"已保存{color_of_light}光下液滴的json文件：{json_file_name}")
         except PermissionError:
             print("没有足够的权限来创建或写入文件")  
+
+#合并blue.json和green.json文件
+def merge_json():
+    # 加载green.json文件
+    with open('green.json', 'r', encoding='utf-8') as file:
+        green_data = json.load(file)
+
+    # 加载blue.json文件
+    with open('blue.json', 'r', encoding='utf-8') as file:
+        blue_data = json.load(file)
+
+    # 创建一个字典，以便快速通过id查找blue中的圆圈
+    blue_circles_dict = {circle['id']: circle for circle in blue_data['circles']}
+    # 合并圈对象
+    merged_circles = []
+    for green_circle in green_data['circles']:
+        circle_id = green_circle['id']
+        if circle_id in blue_circles_dict:
+            merged_circle = green_circle.copy()  # 先复制green中的圈对象
+            merged_circle.update(blue_circles_dict[circle_id])  # 用blue中的圈对象更新，确保FAM值加入
+            merged_circles.append(merged_circle)
+        else:
+            merged_circles.append(green_circle)  # 如果在blue中找不到相应id的圈对象，直接添加green中的对象
+
+    # 准备最终的合并数据
+    merged_data = {
+        "circles": merged_circles,
+        "lightid": green_data['lightid']  # lightid在两个文件中都是相同的
+    }
+
+    # 将合并后的数据写入新的JSON文件
+    with open('通道1.json', 'w', encoding='utf-8') as file:
+        json.dump(merged_data, file, indent=4, ensure_ascii=False)
 
 
      
