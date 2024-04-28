@@ -47,9 +47,9 @@ def sobel_edge_detection(img):
     absx = cv2.convertScaleAbs(sobel_xedge)
     absy = cv2.convertScaleAbs(sobel_yedge)
     sobel_edge_image = cv2.addWeighted(absx,0.5,absy,0.5,0)
-     
+    # return sobel_edge_image
     cv2.imwrite("sobel_edge_image.tiff",sobel_edge_image)
-    print(f"sobel_edge_img:{sobel_edge_image.dtype}+{sobel_edge_image.shape}")
+    # print(f"sobel_edge_img:{sobel_edge_image.dtype}+{sobel_edge_image.shape}")
    
 
 #极大连通域处理
@@ -76,15 +76,17 @@ def connected_component_process(img):
                    [-1,  8, -1],
                    [-1, -1, -1]])
     opening_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-
-    cv2.imwrite("mask.tiff",mask)
-    cv2.imwrite("opening_mask.tiff",opening_mask)
+    
+    # cv2.imwrite("mask.tiff",mask)
+    # cv2.imwrite("opening_mask.tiff",opening_mask)
     print(f"mask:{mask.dtype}_{mask.shape}")
+
+    return opening_mask
 
 
 #根据sobel算子得到的mask做圆形检测，并将检测到的圆心以及半径存储到全局列表
-def draw_mask_circle2BG ():
-    opening_mask = cv2.imread("opening_mask.tiff")
+def draw_mask_circle2BG (img):
+    opening_mask = img
     
     opening_mask_G = cv2.cvtColor(opening_mask, cv2.COLOR_BGR2GRAY)
     cv2.imwrite("opening_mask_G.tiff",opening_mask_G)
@@ -102,7 +104,7 @@ def draw_mask_circle2BG ():
 
 
 #在输入图像上绘制亮度文本以及圆形
-def draw_pixel_at_circle_center(img,color_light):
+def draw_pixel_at_circle_center(img,color_light, picnum):
     height, width = img.shape
     bgr_image = img.copy()
     bgr_image = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
@@ -126,7 +128,7 @@ def draw_pixel_at_circle_center(img,color_light):
         # 在圆心处绘制圆
         cv2.circle(bgr_image, (center[0], center[1]), center[2], (0, 0, 255), 1)
     
-    cv2.imwrite(f"img_with_pixel_values_at_circle_centers_{color_light}.tiff",bgr_image)
+    cv2.imwrite(f"{picnum}_{color_light}_{len(global_circle_list)}.tiff",bgr_image)
     # print (f"global_blue_list:{global_blue_list}")
     # print(f"global_green_list:{global_green_list}")
 
@@ -142,13 +144,13 @@ def generate_json_file(color_of_light):
             data_content = {"id":f"{data[0]}_{data[1]}", "x": data[0], "y": data[1], "radius": data[2], "FAM": data[3],"islive":"true"}
          # 将uint16类型的数据转换为int类型
             if isinstance(data[0], np.uint16):
-                data_content["x"] = int(data[0])
+                data_content["x"] = float(data[0])
             if isinstance(data[1], np.uint16):
-                data_content["y"] = int(data[1])
+                data_content["y"] = float(data[1])
             if isinstance(data[2], np.uint16):
-                data_content["radius"] = int(data[2])
+                data_content["radius"] = float(data[2])
             if isinstance(data[3], np.uint16):
-                data_content["FAM"] = int(data[3])
+                data_content["FAM"] = float(data[3])
             
             # 将数据项内容添加到json文件中
             json_data["circles"].append(data_content)  # 这里应该使用json_data["circles"]而不是circles
@@ -173,13 +175,13 @@ def generate_json_file(color_of_light):
             data_content = {"id":f"{data[0]}_{data[1]}", "x": data[0], "y": data[1], "radius": data[2], "HEX": data[3],"islive":"true"}
             # 将uint16类型的数据转换为int类型
             if isinstance(data[0], np.uint16):
-                data_content["x"] = int(data[0])
+                data_content["x"] = float(data[0])
             if isinstance(data[1], np.uint16):
-                data_content["y"] = int(data[1])
+                data_content["y"] = float(data[1])
             if isinstance(data[2], np.uint16):
-                data_content["radius"] = int(data[2])
+                data_content["radius"] = float(data[2])
             if isinstance(data[3], np.uint16):
-                data_content["HEX"] = int(data[3])
+                data_content["HEX"] = float(data[3])
                 
             # 将数据项内容添加到json文件中
             json_data["circles"].append(data_content)  # 这里应该使用json_data["circles"]而不是circles
@@ -195,7 +197,7 @@ def generate_json_file(color_of_light):
             print("没有足够的权限来创建或写入文件")  
 
 #合并blue.json和green.json文件
-def merge_json():
+def merge_json(picnum):
     # 加载green.json文件
     with open('green.json', 'r', encoding='utf-8') as file:
         green_data = json.load(file)
@@ -224,9 +226,13 @@ def merge_json():
     }
 
     # 将合并后的数据写入新的JSON文件
-    with open('通道1.json', 'w', encoding='utf-8') as file:
+    with open(f'通道{picnum}.json', 'w', encoding='utf-8') as file:
         json.dump(merged_data, file, indent=4, ensure_ascii=False)
 
+    #释放全局列表对于内存的占用
+    global_circle_list.clear()
+    global_blue_list.clear()
+    global_green_list.clear()
 
      
 

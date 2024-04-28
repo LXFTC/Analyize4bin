@@ -1,5 +1,5 @@
 import cv2
-import tifffile
+import time
 import matplotlib.pyplot as plt
 import numpy as np
 import os 
@@ -7,52 +7,78 @@ from PIL import Image
 import split_circle
 import threading 
  
-Wimg = cv2.imread('sobel_tiff\\0513170420_BL1_07.tiff', cv2.IMREAD_ANYDEPTH)
-Bimg = cv2.imread('sobel_tiff\\0513170602_FAM1_08.tiff', cv2.IMREAD_ANYDEPTH)
-Gimg = cv2.imread('sobel_tiff\\0513170900_HEX1_09.tiff', cv2.IMREAD_ANYDEPTH)
+# # 文件夹路径
+# folder_path = 'D:\\opencv-python\\sobel_tiff'#D:\\opencv-python\\sobel_tiff
+# start = time.time()
+# # 获取文件夹下所有的TIFF文件
+# files = [f for f in os.listdir(folder_path) if f.endswith('.tiff')]
 
-print(f"Wimg读进来的格式:{Wimg.dtype}+{Wimg.shape}")
-print(f"Bimg读进来的格式:{Bimg.dtype}+{Bimg.shape}")
-print(f"Gimg读进来的格式:{Gimg.dtype}+{Gimg.shape}")
+# # 确保文件按照文件名排序，如果文件名包含数字，这将保证顺序正确
+# files.sort()
 
-# 图像增强
+# # 分组，每三个一个组
+# grouped_files = [files[i:i+3] for i in range(0, len(files), 3)]
+
+# # 将每组的文件名加入到一个新的总列表中
+# folder_names = []
+# picnum = 0
+# for group in grouped_files:
+    
+#     Wimg_path = folder_path + '\\' + os.path.splitext(group[0])[0] + '.tiff'
+#     Bimg_path = folder_path + '\\' + os.path.splitext(group[1])[0] + '.tiff'
+#     Gimg_path = folder_path + '\\' + os.path.splitext(group[2])[0] + '.tiff'
+    
+Wimg = cv2.imread(r'D:\\opencv-python\\sobel_tiff\\0513160972_BL1_01.tiff', cv2.IMREAD_ANYDEPTH)
+Bimg = cv2.imread(r'D:\\opencv-python\\sobel_tiff\\0513161161_FAM1_02.tiff', cv2.IMREAD_ANYDEPTH)
+Gimg = cv2.imread(r'D:\\opencv-python\\sobel_tiff\\0513161433_HEX1_03.tiff', cv2.IMREAD_ANYDEPTH)
+
+    # 图像增强
 Wimg = split_circle.enhance_contrast(Wimg, 10, 3000)
 Bimg = split_circle.enhance_contrast(Bimg, 50, 4000)#30，4000
-Gimg = split_circle.enhance_contrast(Gimg, 80, 3000)
+Gimg = split_circle.enhance_contrast(Gimg, 70, 3000)
 
-print(f"Wimg转换后的格式:{Wimg.dtype}+{Wimg.shape}")
-print(f"Bimg转换后的格式:{Bimg.dtype}+{Bimg.shape}")
-print(f"Gimg转换后的格式:{Gimg.dtype}+{Gimg.shape}")
-
-
-#对Wimg做sobel算子边缘检测
+    #对Wimg做sobel算子边缘检测
 split_circle.sobel_edge_detection(Wimg)
 split_circle.connected_component_process("sobel_edge_image.tiff")
-split_circle.draw_mask_circle2BG ()
+split_circle.draw_mask_circle2BG ("sobel_edge_image.tiff")
 
-def thread_Func(img,color_of_light):
-    split_circle.draw_pixel_at_circle_center(img,color_of_light)
-    split_circle.generate_json_file(color_of_light)
+split_circle.draw_pixel_at_circle_center(Bimg,'blue',0)
+split_circle.generate_json_file('blue')
+
+split_circle.draw_pixel_at_circle_center(Gimg,'green',0)
+split_circle.generate_json_file('green')
+
+    # def thread_Func(img,color_of_light,picnum):
+    #     split_circle.draw_pixel_at_circle_center(img,color_of_light,picnum)
+    #     split_circle.generate_json_file(color_of_light)
+        
+
+    # Thread1 = threading.Thread(target=thread_Func, args=(Bimg,'blue'))
+    # Thread1.start()
+    # Thread1.join() 
+
+    # Thread2 = threading.Thread(target=thread_Func, args=(Gimg,'green'))
+    # Thread2.start()
+    # Thread2.join()    
+
+# split_circle.merge_json(picnum)
+
+    # picnum += 1
+
+#删除中间生成的图片文件以及中间的json文件
+# try:
+#     os.remove("blue.json")
+#     os.remove("green.json")
+#     os.remove("sobel_edge_image.tiff")
+#     os.remove("mask.tiff")
+#     os.remove("opening_mask_G.tiff")
+#     os.remove("opening_mask.tiff")
+#     print(f"文件已被成功删除。")
+# except FileNotFoundError:
+#     print(f"文件不存在，无法删除。")
     
-
-
-Thread1 = threading.Thread(target=thread_Func, args=(Bimg,'blue'))
-Thread1.start()
-Thread1.join() 
-
-Thread2 = threading.Thread(target=thread_Func, args=(Gimg,'green'))
-Thread2.start()
-Thread2.join()    
-
-split_circle.merge_json()
-# split_circle.draw_pixel_at_circle_center(Gimg,'green')   
-# split_circle.generate_json_file('green')
-
-
-# split_circle.draw_pixel_at_circle_center(Bimg,'blue')   
-# split_circle.generate_json_file('blue')
-
-# split_circle.merge_json('通道1.json')
+end = time.time()
+# print (f"程序运行时间：{int (end - start)} s")
 
 
 
